@@ -114,8 +114,8 @@ const ChatWidget: React.FC = () => {
                   <div className="rag-sources">
                     <span className="rag-label">Sources:</span>
                     {msg.ragSources.map((s, j) => (
-                      <span key={j} className="rag-tag">
-                        {s.slice(0, 60)}...
+                      <span key={j} className="rag-tag" title={s}>
+                        {s.length > 60 ? `${s.slice(0, 60)}...` : s}
                       </span>
                     ))}
                   </div>

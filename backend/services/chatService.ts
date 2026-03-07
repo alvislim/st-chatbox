@@ -28,6 +28,7 @@ interface ChatResult {
 
 export async function generateReply(session: Session, sanitizedMessage: string): Promise<ChatResult> {
   const ragResults: ScoredEntry[] = searchOwasp(owaspData, sanitizedMessage);
+  console.log(`RAG: query="${sanitizedMessage}" → ${ragResults.length} results`, ragResults.map((r) => `[${r.score.toFixed(1)}] ${r.question.slice(0, 60)}`));
   let ragContext = "";
   if (ragResults.length > 0) {
     // Limit each answer to 600 chars to keep the prompt within token limits.
