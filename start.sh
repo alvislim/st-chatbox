@@ -1,13 +1,18 @@
 #!/bin/bash
 
-# Start backend
+# Install and start backend
+echo "Installing backend dependencies..."
+cd backend && npm install
 echo "Starting backend..."
-cd backend && npm start &
+npm start &
 BACKEND_PID=$!
+cd ..
 
-# Start frontend
+# Install and start frontend
+echo "Installing frontend dependencies..."
+cd frontend && npm install
 echo "Starting frontend..."
-cd frontend && npm start &
+npm start &
 FRONTEND_PID=$!
 
 # Handle Ctrl+C to kill both
