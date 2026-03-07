@@ -1,11 +1,20 @@
-const fs = require("fs");
-const path = require("path");
-const { parse } = require("csv-parse/sync");
+import fs from "fs";
+import path from "path";
+import { parse } from "csv-parse/sync";
 
 const DATASET_PATH = path.join(__dirname, "..", "dataset.csv");
 
-function loadOwaspData() {
-  return new Promise((resolve, reject) => {
+export interface OwaspEntry {
+  question: string;
+  answer: string;
+}
+
+export interface ScoredEntry extends OwaspEntry {
+  score: number;
+}
+
+export function loadOwaspData(): Promise<OwaspEntry[]> {
+  return new Promise((resolve) => {
     try {
       const fileContent = fs.readFileSync(DATASET_PATH, "utf-8");
       const records = parse(fileContent, {
@@ -13,22 +22,24 @@ function loadOwaspData() {
         skip_empty_lines: true,
         relax_quotes: true,
         relax_column_count: true,
-      });
+      }) as Record<string, string>[];
 
-      const data = records.map((row) => ({
-        question: (row.Question || "").trim(),
-        answer: (row.Answer || "").trim(),
-      })).filter((row) => row.question && row.answer);
+      const data: OwaspEntry[] = records
+        .map((row) => ({
+          question: (row.Question || "").trim(),
+          answer: (row.Answer || "").trim(),
+        }))
+        .filter((row) => row.question && row.answer);
 
       resolve(data);
     } catch (err) {
-      console.error("Error loading OWASP dataset:", err.message);
+      console.error("Error loading OWASP dataset:", (err as Error).message);
       resolve([]);
     }
   });
 }
 
-function tokenize(text) {
+function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
@@ -36,7 +47,6 @@ function tokenize(text) {
     .filter((w) => w.length > 2);
 }
 
-// Stop words to ignore during matching
 const STOP_WORDS = new Set([
   "the", "and", "for", "are", "but", "not", "you", "all", "can", "has",
   "her", "was", "one", "our", "out", "its", "his", "how", "who", "what",
@@ -46,30 +56,27 @@ const STOP_WORDS = new Set([
   "such", "only", "also", "just", "each", "any", "other",
 ]);
 
-function searchOwasp(data, query, topK = 3) {
+export function searchOwasp(data: OwaspEntry[], query: string, topK: number = 3): ScoredEntry[] {
   const queryTokens = tokenize(query).filter((t) => !STOP_WORDS.has(t));
   if (queryTokens.length === 0) return [];
 
-  const scored = data.map((entry) => {
+  const scored: ScoredEntry[] = data.map((entry) => {
     const questionTokens = tokenize(entry.question);
     const answerTokens = tokenize(entry.answer);
     const allTokens = [...questionTokens, ...answerTokens];
 
     let score = 0;
     for (const qt of queryTokens) {
-      // Exact match in question gets higher weight
       for (const qToken of questionTokens) {
         if (qToken === qt) score += 3;
         else if (qToken.includes(qt) || qt.includes(qToken)) score += 1.5;
       }
-      // Match in answer
       for (const aToken of answerTokens) {
         if (aToken === qt) score += 1;
         else if (aToken.includes(qt) || qt.includes(aToken)) score += 0.5;
       }
     }
 
-    // Boost for matching multiple query terms
     const uniqueMatches = new Set(
       queryTokens.filter((qt) => allTokens.some((t) => t.includes(qt) || qt.includes(t)))
     );
@@ -85,5 +92,3 @@ function searchOwasp(data, query, topK = 3) {
     .sort((a, b) => b.score - a.score)
     .slice(0, topK);
 }
-
-module.exports = { loadOwaspData, searchOwasp };
