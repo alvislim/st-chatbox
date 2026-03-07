@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
 
-const DATASET_PATH = path.join(__dirname, "..", "dataset.csv");
+const DATASET_PATH = fs.existsSync(path.join(__dirname, "dataset.csv"))
+  ? path.join(__dirname, "dataset.csv")
+  : path.join(__dirname, "..", "dataset.csv");
 
 export interface OwaspEntry {
   question: string;
