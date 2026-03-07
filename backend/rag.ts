@@ -67,13 +67,15 @@ export function searchOwasp(data: OwaspEntry[], query: string, topK: number = 3)
 
     let score = 0;
     for (const qt of queryTokens) {
+      // Only allow partial matches for tokens with 4+ chars to avoid false positives
+      const minPartialLen = 4;
       for (const qToken of questionTokens) {
         if (qToken === qt) score += 3;
-        else if (qToken.includes(qt) || qt.includes(qToken)) score += 1.5;
+        else if (qt.length >= minPartialLen && qToken.length >= minPartialLen && (qToken.includes(qt) || qt.includes(qToken))) score += 1.5;
       }
       for (const aToken of answerTokens) {
         if (aToken === qt) score += 1;
-        else if (aToken.includes(qt) || qt.includes(aToken)) score += 0.5;
+        else if (qt.length >= minPartialLen && aToken.length >= minPartialLen && (aToken.includes(qt) || qt.includes(aToken))) score += 0.5;
       }
     }
 
@@ -88,7 +90,7 @@ export function searchOwasp(data: OwaspEntry[], query: string, topK: number = 3)
   });
 
   return scored
-    .filter((e) => e.score > 0)
+    .filter((e) => e.score >= 3)
     .sort((a, b) => b.score - a.score)
     .slice(0, topK);
 }
